@@ -1,0 +1,45 @@
+{
+    "name"        : "oito_curves",
+    "version"     : "0.0.1",
+    "author"      : "Pedro Sousa ( Vor @ SketchPunk Labs )",
+    "description" : "Curves and Splines",
+    "keywords"    : [],
+    "license"     : "MIT",
+    "homepage"    : "https://github.com/sketchpunklabs/oito_ray#readme",
+    "repository"  : { "url": "git+https://github.com/sketchpunklabs/oito_ray.git", "type": "git" },
+    "bugs"        : { "url": "https://github.com/sketchpunklabs/oito_ray/issues" },
+    "files"       : [ "dist" ],
+    "main"        : "./dist/oito_curves.cjs.js",
+    "module"      : "./dist/oito_curves.es.js",
+    "types"       : "./dist/oito_curves.d.ts",
+    "exports"     : {
+        ".": {
+            "import"  : "./dist/oito_curves.es.js",
+            "require" : "./dist/oito_curves.cjs.js"
+        }
+    },
+    "scripts"   : {
+        "dev"           : "vite",
+        "build"         : "vite build",
+        "build:types"   : "tsc --declaration --noEmit false --emitDeclarationOnly --strict false --outDir ./dist",
+        "build:site"    : "vite build --mode site",
+        "pack"          : "npm pack",
+        "preview-site"  : "vite preview",
+        "lint"          : "eslint . --ext .ts",
+        "deletePkg"     : "rd /s /q \"node_modules/oito\"",
+        "installPkg"    : "npm install file:../oito/oito-0.0.1.tgz --force"
+    },
+
+    "dependencies"  : {
+        "oito": "github:sketchpunklabs/oito"
+    },
+
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin"  : "^5.13.0",
+        "@typescript-eslint/parser"         : "^5.13.0",
+        "eslint"                            : "^8.10.0",
+        "three"                             : "^0.138.2",
+        "typescript"                        : "^4.6.2",
+        "vite"                              : "^2.8.6"
+    }
+}

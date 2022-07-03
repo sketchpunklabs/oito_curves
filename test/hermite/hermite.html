@@ -1,0 +1,74 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title></title></head><body><script type="module">
+
+//#region IMPORTS
+import Starter, { THREE }           from '../_lib/Starter.js';
+import ShapePointsMesh              from '../_lib/ShapePointsMesh.js';
+import DynLineMesh                  from '../_lib/DynLineMesh.js';
+
+import Hermite                  from '../../src/hermite/Hermite';
+import { vec3 }                     from 'oito';
+//#endregion
+
+//#region MAIN
+let App;
+let Debug   = {};
+let Ref     = {};
+
+window.addEventListener( "load", async _=>{
+    App = new Starter( { webgl2:true, grid:true } );
+    App.setCamera( 0, 20, 10, [0,0.8,0] );
+
+    App.add( ( Debug.pnt = new ShapePointsMesh() ) );
+    App.add( ( Debug.ln  = new DynLineMesh() ) );
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    const a = [-2, 1, 0];
+    const b = [-1,-1, 0];
+    const c = [ 1, 1, 0,];
+    const d = [ 2,-1, 0];
+
+    renderPoints( a, b, c, d );
+    renderCurve( a, b, c, d, 10 );
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    App.render();
+});
+//#endregion
+
+//#region LOREM
+function renderPoints( ...pnts ){
+    for( let p of pnts ){
+        Debug.pnt.add( p, 0x007777, 8 );
+    }
+}
+
+function renderCurve( a, b, c, d, samp=10 ){
+    const prev  = [0,0,0];
+    const curr  = [0,0,0];
+    const dxdy  = [0,0,0];
+    const v     = [0,0,0];
+    const tension = 0.0;
+    const bias    = 0.0;
+
+    let t;
+
+    Hermite.at( a, b, c, d, 0, tension, bias, prev );
+    Debug.pnt.add( prev, 0x00ff00, 3 );
+
+    for( let i=1; i <= samp; i++ ){
+        t = i / samp;
+        Hermite.at( a, b, c, d, t, tension, bias, curr );
+        Hermite.dxdy( a, b, c, d, t,  tension, bias, dxdy );
+    
+        Debug.pnt.add( curr, 0x00ff00, 3 );
+        Debug.ln.add( prev, curr, 0x00ff00 );
+        Debug.ln.add( curr, vec3.scaleThenAdd( vec3.norm( dxdy ), 0.5, curr ), 0xffffff );
+        
+        vec3.copy( curr, prev );
+    }
+}
+//#endregion
+
+</script>
+</body></html>
