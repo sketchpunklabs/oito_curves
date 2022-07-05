@@ -1,0 +1,102 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title></title></head><body><script type="module">
+
+//#region IMPORTS
+import Starter, { THREE }           from '../_lib/Starter.js';
+import ShapePointsMesh              from '../_lib/ShapePointsMesh.js';
+import DynLineMesh                  from '../_lib/DynLineMesh.js';
+
+import KochanekBartelsSpline                from '../../src/hermite/KochanekBartelsSpline';
+import { vec3 }                     from 'oito';
+//#endregion
+
+//#region MAIN
+let App;
+let Debug   = {};
+let Ref     = {};
+
+window.addEventListener( "load", async _=>{
+    App = new Starter( { webgl2:true, grid:true } );
+    App.setCamera( 0, 10, 6, [0,0.3,0] );
+
+    App.add( ( Debug.pnt = new ShapePointsMesh() ) );
+    App.add( ( Debug.ln  = new DynLineMesh() ) );
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    const spline  = new KochanekBartelsSpline( 0, 0, 0 );
+    
+    spline.isLoop = true;
+    
+    spline.add( [-2, 1.5, 0] );
+    spline.add( [-1,-1, -1] );
+    spline.add( [ 1, 0.5, 1] );
+    spline.add( [ 2,-1, 0] );
+    spline.add( [ 3, 1.5, 1] );
+
+    renderPoints( spline );
+    //renderSpline( spline, 20 );
+    renderSplineCurves( spline, 10 );
+    
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    App.render();
+});
+//#endregion
+
+//#region LOREM
+function renderPoints( spline ){
+    for( let p of spline.points ){
+        Debug.pnt.add( p.pos, 0x007777, 8 );
+    }
+}
+
+function renderSpline( spline, samp=10 ){
+    const prev  = [0,0,0];
+    const curr  = [0,0,0];
+    const dxdy  = [0,0,0];
+    let t;
+
+    samp -= 1;
+
+    spline.at( 0, prev );
+    Debug.pnt.add( prev, 0x00ff00, 3 );
+    for( let i=1; i <= samp; i++ ){
+        t = i / samp;
+
+        spline.at( t, curr, dxdy );
+
+        Debug.pnt.add( curr, 0x00ff00, 3 );
+        Debug.ln.add( prev, curr, 0x00ff00 );
+        Debug.ln.add( curr, vec3.scaleThenAdd( vec3.norm( dxdy ), 0.5, curr ), 0xffffff );
+        
+        vec3.copy( curr, prev );
+    }
+}
+
+function renderSplineCurves( spline, samp=10 ){
+    const prev  = [0,0,0];
+    const curr  = [0,0,0];
+    const dxdy  = [0,0,0];
+    let t;
+
+    samp -= 1;
+
+    for( let c=0; c < spline.curveCount; c++ ){
+        spline.atCurve( c, 0, prev );
+        Debug.pnt.add( prev, 0x00ff00, 3 );
+        
+        for( let i=1; i <= samp; i++ ){
+            t = i / samp;
+            spline.atCurve( c, t, curr, dxdy );
+
+            Debug.pnt.add( curr, 0x00ff00, 3 );
+            Debug.ln.add( prev, curr, 0x00ff00 );
+            Debug.ln.add( curr, vec3.scaleThenAdd( vec3.norm( dxdy ), 0.5, curr ), 0xffffff );
+
+            vec3.copy( curr, prev );
+        }
+    }
+}
+//#endregion
+
+</script>
+</body></html>
