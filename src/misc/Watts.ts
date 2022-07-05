@@ -11,9 +11,6 @@ export default class Watts{
         a : Distance between the center of 2 circles
         b : Radius of Circles
         c : Length of Rods
-        a : Distance between the center of 2 circles
-        b : Radius of Circles
-        c : Length of Rods
     */
 
     static at( t:number, centerDist=1, radius=2, rodLen=1, out=[0,0,0] ): TVec3{
