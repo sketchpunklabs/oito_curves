@@ -1,9 +1,10 @@
-// https://blackpawn.com/texts/pqtorus/
+import type { TVec3 }       from 'oito';
 
-class TorusKnot{
+// https://blackpawn.com/texts/pqtorus/
+export default class TorusKnot{
     // p : winds around its axis of rotational symmetry
     // q : winds around a circle in the interior
-    static at( out: TVec3, t: number, p=2, q=5, radius=1 ) : TVec3{
+    static at( t: number, p=2, q=5, radius=1, out: TVec3=[0,0,0] ) : TVec3{
 
         // https://en.wikipedia.org/wiki/Torus_knot
         // x = r * ( 2 + cos( q/p * x ) ) * 0.5 * cos( x )
@@ -21,7 +22,7 @@ class TorusKnot{
     }
     
     // first derivative - tangent of curve
-    static dxdy( out: TVec3, t:number, p=2, q=5, radius=1 ) : TVec3{
+    static dxdy( t:number, p=2, q=5, radius=1, out: TVec3=[0,0,0] ) : TVec3{
         // https://www.symbolab.com/solver/derivative-calculator
         // https://www.wolframalpha.com/
         // First Derivative
@@ -45,7 +46,7 @@ class TorusKnot{
     }
     
     // second derivative - normal of curve
-    static dxdy2( out: TVec3, t:number, p=2, q=5, radius=1 ) : TVec3{
+    static dxdy2( t:number, p=2, q=5, radius=1, out: TVec3=[0,0,0] ) : TVec3{
         const x         = t * p * Math.PI * 2,
               rh        = radius * 0.5,
               pq2       = 2 * p * q,
@@ -67,5 +68,3 @@ class TorusKnot{
     }
 
 }
-
-export default TorusKnot;
