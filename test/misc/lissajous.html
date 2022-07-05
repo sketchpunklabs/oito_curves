@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title></title></head><body><script type="module">
+
+//#region IMPORTS
+import Starter, { THREE }           from '../_lib/Starter.js';
+import ShapePointsMesh              from '../_lib/ShapePointsMesh.js';
+import DynLineMesh                  from '../_lib/DynLineMesh.js';
+
+import Lissajous                    from '../../src/misc/Lissajous';
+import { vec3 }                     from 'oito';
+//#endregion
+
+//#region MAIN
+let App;
+let Debug   = {};
+let Ref     = {};
+
+window.addEventListener( "load", async _=>{
+    App = new Starter( { webgl2:true, grid:true } );
+    App.setCamera( 0, 20, 6, [0,0.3,0] );
+
+    App.add( ( Debug.pnt = new ShapePointsMesh() ) );
+    App.add( ( Debug.ln  = new DynLineMesh() ) );
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     renderCurve( 60, 1, 5,1,5,1,2 );
+    // renderCurve( 60, 1, 5,4,5,1,2 );
+    // renderCurve( 60, 1, 5,4,5,4,2 );
+    
+    // renderCurveAlt( 60, 3, 1, 1, 1, 0, 1 );
+    // renderCurveAlt( 60, 5, 2, 1, 0, -2, 1 );
+    // renderCurveAlt( 60, 2, 3, 1, 0, 0.4, 1 );
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    App.render();
+});
+//#endregion
+
+//#region LOREM
+
+function renderCurve( samp=10, radius=1, a, b, c, d, e ){
+    const prev  = [0,0,0];
+    const curr  = [0,0,0];
+
+    let t;
+
+    Lissajous.at( 0, radius, a, b, c, d, e, 0, prev );
+    Debug.pnt.add( prev, 0x00ff00, 3 );
+
+    for( let i=1; i <= samp; i++ ){
+        t = i / samp;
+        Lissajous.at( t, radius, a, b, c, d, e, 0, curr );
+
+        Debug.pnt.add( curr, 0x00ff00, 2 );
+        Debug.ln.add( prev, curr, 0x00ff00 );
+        vec3.copy( curr, prev );
+    }
+}
+
+function renderCurveAlt( samp=10, xRng=3, yRng=1, zRng=1, xOffset=1, yOffset=0, zOffset=0 ){
+    const prev  = [0,0,0];
+    const curr  = [0,0,0];
+
+    let t;
+
+    Lissajous.alt( 0, xRng, yRng, zRng, xOffset, yOffset, zOffset, prev );
+    Debug.pnt.add( prev, 0x00ff00, 3 );
+
+    for( let i=1; i <= samp; i++ ){
+        t = i / samp;
+        Lissajous.alt( t, xRng, yRng, zRng, xOffset, yOffset, zOffset, curr );
+
+        Debug.pnt.add( curr, 0x00ff00, 2 );
+        Debug.ln.add( prev, curr, 0x00ff00 );
+        vec3.copy( curr, prev );
+    }
+}
+//#endregion
+
+</script>
+</body></html>
