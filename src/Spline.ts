@@ -2,8 +2,9 @@ import type { TVec3 } from 'oito';
 import { vec3 }       from 'oito';
 
 export class Point{
-    pos     = [ 0, 0, 0 ];
-    attrib  = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    attrib : any           = {};
+    pos    : Array<number> = [ 0, 0, 0 ];
     constructor( pos: TVec3 ){
         vec3.copy( pos, this.pos );
     }
@@ -27,11 +28,12 @@ export class Spline{
 
     // #region MANAGE POINTS
     /** Add Points to the spline */
-    add( pos: TVec3 ) : this{
-        this.points.push( new Point( pos ) );
+    add( pos: TVec3 ) : Point{
+        const o = new Point( pos );
+        this.points.push( o );
         this._pointCnt = this.points.length;
         // TODO - Each subclass has to update the curveCount
-        return this;
+        return o;
     }
 
     /** Update point position */

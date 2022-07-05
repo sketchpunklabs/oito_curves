@@ -1,5 +1,5 @@
 // #region IMPORTS
-import { Spline }           from '../Spline';
+import { Spline, Point }    from '../Spline';
 import BezierQuad           from './BezierQuad';
 
 import type { TVec3 }       from 'oito';
@@ -8,10 +8,10 @@ import { Maths }            from 'oito';
 
 export default class BezierQuadSpline extends Spline{
     // #region MANAGE POINTS
-    add( pos: TVec3 ) : this{
-        super.add( pos );
+    add( pos: TVec3 ) : Point{
+        const o = super.add( pos );
         this._curveCnt = Math.max( 0, Math.floor( (this._pointCnt - 1) / 2 ) );
-        return this;
+        return o;
     }
     // #endregion
 

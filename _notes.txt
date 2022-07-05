@@ -1,0 +1,1 @@
+https://github.com/Zolniu/DigitalRune/tree/master/Source/DigitalRune.Mathematics/Interpolation

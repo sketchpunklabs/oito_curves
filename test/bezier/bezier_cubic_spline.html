@@ -23,29 +23,20 @@ window.addEventListener( "load", async _=>{
     App.add( ( Debug.ln  = new DynLineMesh() ) );
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // const a = [-2, 0, 0];
-    // const b = [-1, 2, -1];
-    // const c = [ 2, 0, 1];
-
-    // renderPoints( a, b, c );
-    // renderCurve( a, b, c, 10 );
-
     const spline = new BezierCubicSpline();
     
     spline.isLoop = true;
-    spline
-        .add( [-2, 0, 0] )
-        .add( [-1, -2, -1] )
-        .add( [ 2, 0, 1] )
-        .add( [ 3, -1, 1] )
+    spline.add( [-2, 0, 0] );
+    spline.add( [-1, -2, -1] );
+    spline.add( [ 2, 0, 1] );
+    spline.add( [ 3, -1, 1] );
 
-        .add( [ 5, 0, 0] )
-        .add( [ 5, 2, -1] )
-        .add( [ 4, 3, 0] )
+    spline.add( [ 5, 0, 0] );
+    spline.add( [ 5, 2, -1] );
+    spline.add( [ 4, 3, 0] );
 
-        .add( [ 2, 2, 0] ) // Extra Two Points for Closed Loop
-        .add( [ 0, 3, 0] )
-    ;
+    spline.add( [ 2, 2, 0] ); // Extra Two Points for Closed Loop
+    spline.add( [ 0, 3, 0] );
 
     renderPoints( spline );
     //renderSpline( spline, 20 );
@@ -114,7 +105,6 @@ function renderSplineCurves( spline, samp=10 ){
         }
     }
 }
-
 //#endregion
 
 </script>

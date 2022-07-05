@@ -1,161 +1,95 @@
-import Maths    from "../Maths.js";
-import Vec3     from "../Vec3.js";
+// #region IMPORTS
+import { Spline, Point }    from '../Spline';
+import type { TVec3 }       from 'oito';
+import { Maths }            from 'oito';
+// #endregion
 
-class Point{
-    pos     : Vec3 = new Vec3();
-    tension : number;
-    bias    : number;
-    constructor( pos: TVec3, tension=0, bias=0 ){
-        this.pos.copy( pos );
-        this.tension = tension;
-        this.bias    = bias;
+export default class HermiteSpline extends Spline{
+    // #region MAIN
+    _tension  : number = 0;
+    _bias     : number = 0;
+    _tenBiasN : number = 0; // Optimize
+    _tenBiasP : number = 0;
+
+    constructor( tension:number=0, bias:number=0 ){
+        super();
+        this._tension = tension;
+        this._bias    = bias;
     }
-}
+    // #endregion
 
-class HermiteSpline{
 
-    //#region MAIN
-    points : Array<Point> = []; // All the Points that defines all the curves of the Spline
-    _curve_cnt  = 0;            // How many curves make up the spline
-    _point_cnt  = 0;            // Total points in spline
-    _is_loop    = false;        // Is the spline closed? Meaning should the ends be treated as another curve
-    
-    // Private PreComputed Values for each sample of the curve
-    time        = 0;    // Time of the selected curve of the spline
-    tension	    = 0;    // Lerped Tension between end points of curve
-    bias        = 0;    // Lerped Bias between end points of curve
-    ten_bias_p  = 0;    // Precomputed Value thats uses often
-    ten_bias_n  = 0;    // Precomputed Value thats uses often
+    // #region MANAGE POINTS
+    add( pos: TVec3, tension:number=this._tension, bias:number=this._bias ) : Point{
+        const o = super.add( pos );
+        o.attrib.tension = tension;
+        o.attrib.bias    = bias;
 
-    constructor( isLoop=false ){
-        this._is_loop = isLoop;
+        this._curveCnt   = ( !this._isLoop )?
+            Math.max( 0, this._pointCnt - 3 ) :
+            this._pointCnt;
+
+        return o;
     }
-    //#endregion ////////////////////////////////////////////////////////
+    // #endregion
 
-    //#region GETTERS / SETTERS
-    get curveCount() : number{ return this._curve_cnt; }
-    get pointCount() : number{ return this._point_cnt; }
-    //#endregion ////////////////////////////////////////////////////////
 
-    //#region MANAGE POINTS
-    add( pos: TVec3, tension=0, bias=0 ) : HermiteSpline{
-        this.points.push( new Point( pos, tension, bias ) );
-        this._point_cnt = this.points.length;
-        this._curve_cnt = ( !this._is_loop )?
-            Math.max( 0, this._point_cnt - 3 ) :
-            this._point_cnt;
-        return this;
+    // #region GETTERS
+    get curveCount() : number{ 
+        return ( !this._isLoop )? this._curveCnt : this._pointCnt;
     }
-    
-    updatePos( idx: number, pos: TVec3 ): HermiteSpline{ 
-        this.points[ idx ].pos.copy( pos ); 
-        return this;
-    }
+    // #endregion
 
-    /** Update point position using a XYZ Struct, make it easier to use THREE.JS */
-    updatePosStruct( idx: number, pos: TVec3Struct ) : HermiteSpline{
-        this.points[ idx ].pos.fromStruct( pos );
-        return this;
-    }
-    //#endregion ////////////////////////////////////////////////////////
 
-    //#region SPLINE
-    /** Get position / first derivative of the curve */
-    at( t: number, pos ?: TVec3, dxdy ?: TVec3 ) : TVec3{
-        const i = ( !this._is_loop )? this._nonLoopIndex( t ) : this._loopIndex( t );
-        const a = this.points[ i[ 0 ] ].pos;
-        const b = this.points[ i[ 1 ] ].pos;
-        const c = this.points[ i[ 2 ] ].pos;
-        const d = this.points[ i[ 3 ] ].pos;
+    // #region SPLINE OPERATIONS
+    /** Get Position and Dertivates of the Spline at T */
+    at( t: number, pos ?: TVec3, dxdy ?: TVec3 ): void{
+        if( t > 1 )      t = 1;
+        else if( t < 0 ) t = 0;
 
-        if( pos )  this._at( a, b, c, d, this.time, pos );
-        if( dxdy ) this._dxdy( a, b, c, d, this.time, dxdy );
+        const p                  = this.points;
+        const [ a, b, c, d, tt ] = ( !this._isLoop )?
+            this._computeCurveIdx( t ) :
+            this._computeLoopIdx( t ) ;
 
-        return pos || dxdy;
+        this._precalcParams( tt, b, c );
+
+        if( pos )  this._at(   p[a].pos, p[b].pos, p[c].pos, p[d].pos, tt, pos );
+        if( dxdy ) this._dxdy( p[a].pos, p[b].pos, p[c].pos, p[d].pos, tt, dxdy );
     }
 
-    /** Get position / first derivative of specific curve on the spline  */
-    atCurve( idx: number, t: number, pos ?: TVec3, dxdy ?: TVec3 ) : TVec3{
-        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if( t < 0 )      t = 0;
-        else if( t > 1 ) t = 1;
+    atCurve( cIdx: number, t: number, pos ?: TVec3, dxdy ?: TVec3 ): void{
+        if( t > 1 )      t = 1;
+        else if( t < 0 ) t = 0;
 
-        const i  = ( this._is_loop )? idx : idx+1;
-        const ia = Maths.mod( i-1, this._point_cnt );   // Get Previous Point as Starting Tangent
-        const ic = Maths.mod( i+1, this._point_cnt );   // Get Next point is the end point of the curve
-        const id = Maths.mod( i+2, this._point_cnt );   // The the following point as the Ending Tangent
-        this._precalcParams( t, i, ic );
+        const p = this.points;
+        const a = cIdx;
+        const b = Maths.mod( a + 1, this._pointCnt );
+        const c = Maths.mod( a + 2, this._pointCnt );
+        const d = Maths.mod( a + 3, this._pointCnt );
 
-        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        const a = this.points[ ia ].pos;
-        const b = this.points[ i  ].pos;
-        const c = this.points[ ic ].pos;
-        const d = this.points[ id ].pos;
+        this._precalcParams( t, b, c );
 
-        if( pos )  this._at( a, b, c, d, this.time, pos );
-        if( dxdy ) this._dxdy( a, b, c, d, this.time, dxdy );
-
-        return pos || dxdy;
+        if( pos )  this._at(   p[a].pos, p[b].pos, p[c].pos, p[d].pos, t, pos );
+        if( dxdy ) this._dxdy( p[a].pos, p[b].pos, p[c].pos, p[d].pos, t, dxdy );
     }
-    //#endregion ////////////////////////////////////////////////////////
+    // #endregion
 
-    //#region COMPUTE
-    /** Compute the indexes of the curve if the spline isn't a closed loop */
-    _nonLoopIndex( t:number ) : [number, number, number, number]{
-        let i: number, tt: number;
-        if( t > 1 ) t = 1;
-        if( t < 0 ) t = 0;
 
-        if( t != 1 ){
-            tt	= t * this._curve_cnt;  // Using Curve count as a way to get the Index and the remainder is the T of the curve
-            i 	= tt | 0;	            // Curve index by stripping out the decimal, BitwiseOR 0 same op as Floor
-            tt	-= i;		            // Strip out the whole number to get the decimal norm to be used for the curve ( FRACT )
-        }else{
-            i	= this._point_cnt - 4;  // The last 4 points make up the final curve in the spline
-            tt	= 1;                    // The end of the final curve.
-        }
-
-        this._precalcParams( tt, i+1, i+2 );
-        return [ i, i+1, i+2, i+3 ];
-    }
-
-    /** Compute the indexes of the curve if the spline is a closed loop */
-    _loopIndex( t:number ) : [number, number, number, number]{
-        let i: number, tt: number;
-        if( t > 1 ) t = 1;
-        if( t < 0 ) t = 0;
-
-        if( t != 1 ){
-            tt  = t * this._point_cnt;   // Find the starting point for a curve.
-            i   = tt | 0;                // Curve index by stripping out the decimal, BitwiseOR 0 same op as Floor
-            tt -= i;	                 // Strip out the whole number to get the decimal norm to be used for the curve ( FRACT )
-        }else{
-            i   = this._point_cnt - 1;   // Use the last point as the starting point
-            tt  = 1;
-        }	
-
-        const ia = Maths.mod( i-1, this._point_cnt );   // Get Previous Point as Starting Tangent
-        const ic = Maths.mod( i+1, this._point_cnt );   // Get Next point is the end point of the curve
-        const id = Maths.mod( i+2, this._point_cnt );   // The the following point as the Ending Tangent
-
-        this._precalcParams( tt, i, ic );
-        return [ ia, i, ic, id ];
-    }
-
+    // #region OPTIMIZED HERMITE CURVE
     /** Precompute and cache values for every at call, for optimization */
     _precalcParams( t: number, bi: number, ci: number ) : void{
         // Pre-caluate Paramters for Curve & Derivative Equations
-        const ti        = 1 - t;
-        this.time       = t;
+        const ti         = 1 - t;
 
-        // Lerp Tension and Biass between the main 2 points of the curve
-        this.tension    = ti * this.points[ bi ].tension    + t * this.points[ ci ].tension;
-        this.bias       = ti * this.points[ bi ].bias       + t * this.points[ ci ].bias;
+        // Lerp Tension and Bias between the main 2 points of the curve
+        const tension    = ti * this.points[ bi ].attrib.tension + t * this.points[ ci ].attrib.tension;
+        const bias       = ti * this.points[ bi ].attrib.bias    + t * this.points[ ci ].attrib.bias;
 
         // Main Equation uses these values 4 times per component, Better
         // to precompute now for optimization
-        this.ten_bias_n	= ( 1 - this.bias ) * ( 1 - this.tension ) * 0.5;
-        this.ten_bias_p	= ( 1 + this.bias ) * ( 1 - this.tension ) * 0.5;
+        this._tenBiasN	 = ( 1 - bias ) * ( 1 - tension ) * 0.5;
+        this._tenBiasP	 = ( 1 + bias ) * ( 1 - tension ) * 0.5;
     }
 
     _at( a: TVec3, b: TVec3, c: TVec3, d: TVec3, t:number, out: TVec3 ) : TVec3{
@@ -166,9 +100,9 @@ class HermiteSpline{
                 a2 = t3 - t2,
                 a3 = -2*t3 + 3*t2;
 
-        out[ 0 ] = a0*b[0] + a1 * ( (b[0]-a[0]) * this.ten_bias_p + (c[0]-b[0]) * this.ten_bias_n ) + a2 * ( (c[0]-b[0]) * this.ten_bias_p + (d[0]-c[0]) * this.ten_bias_n ) + a3*c[0];
-        out[ 1 ] = a0*b[1] + a1 * ( (b[1]-a[1]) * this.ten_bias_p + (c[1]-b[1]) * this.ten_bias_n ) + a2 * ( (c[1]-b[1]) * this.ten_bias_p + (d[1]-c[1]) * this.ten_bias_n ) + a3*c[1];
-        out[ 2 ] = a0*b[2] + a1 * ( (b[2]-a[2]) * this.ten_bias_p + (c[2]-b[2]) * this.ten_bias_n ) + a2 * ( (c[2]-b[2]) * this.ten_bias_p + (d[2]-c[2]) * this.ten_bias_n ) + a3*c[2];
+        out[ 0 ] = a0*b[0] + a1 * ( (b[0]-a[0]) * this._tenBiasP + (c[0]-b[0]) * this._tenBiasN ) + a2 * ( (c[0]-b[0]) * this._tenBiasP + (d[0]-c[0]) * this._tenBiasN ) + a3*c[0];
+        out[ 1 ] = a0*b[1] + a1 * ( (b[1]-a[1]) * this._tenBiasP + (c[1]-b[1]) * this._tenBiasN ) + a2 * ( (c[1]-b[1]) * this._tenBiasP + (d[1]-c[1]) * this._tenBiasN ) + a3*c[1];
+        out[ 2 ] = a0*b[2] + a1 * ( (b[2]-a[2]) * this._tenBiasP + (c[2]-b[2]) * this._tenBiasN ) + a2 * ( (c[2]-b[2]) * this._tenBiasP + (d[2]-c[2]) * this._tenBiasN ) + a3*c[2];
         return out;
     }
 
@@ -181,13 +115,51 @@ class HermiteSpline{
                 a2  = tt3 - 2*t,
                 a3  = 6*t - tt6;
 
-         out[ 0 ] = a0 * b[0] + a1 * ( (b[0]-a[0]) * this.ten_bias_p  + (c[0]-b[0]) * this.ten_bias_n ) + a2 * ( (c[0]-b[0]) * this.ten_bias_p  + (d[0]-c[0]) * this.ten_bias_n ) + a3 * c[0];
-         out[ 1 ] = a0 * b[1] + a1 * ( (b[1]-a[1]) * this.ten_bias_p  + (c[1]-b[1]) * this.ten_bias_n ) + a2 * ( (c[1]-b[1]) * this.ten_bias_p  + (d[1]-c[1]) * this.ten_bias_n ) + a3 * c[1];
-         out[ 2 ] = a0 * b[2] + a1 * ( (b[2]-a[2]) * this.ten_bias_p  + (c[2]-b[2]) * this.ten_bias_n ) + a2 * ( (c[2]-b[2]) * this.ten_bias_p  + (d[2]-c[2]) * this.ten_bias_n ) + a3 * c[2];
+         out[ 0 ] = a0 * b[0] + a1 * ( (b[0]-a[0]) * this._tenBiasP + (c[0]-b[0]) * this._tenBiasN ) + a2 * ( (c[0]-b[0]) * this._tenBiasP  + (d[0]-c[0]) * this._tenBiasN ) + a3 * c[0];
+         out[ 1 ] = a0 * b[1] + a1 * ( (b[1]-a[1]) * this._tenBiasP + (c[1]-b[1]) * this._tenBiasN ) + a2 * ( (c[1]-b[1]) * this._tenBiasP  + (d[1]-c[1]) * this._tenBiasN ) + a3 * c[1];
+         out[ 2 ] = a0 * b[2] + a1 * ( (b[2]-a[2]) * this._tenBiasP + (c[2]-b[2]) * this._tenBiasN ) + a2 * ( (c[2]-b[2]) * this._tenBiasP  + (d[2]-c[2]) * this._tenBiasN ) + a3 * c[2];
          return out;
     }
-    //#endregion ////////////////////////////////////////////////////////
+    // #endregion
 
+
+    // #region HELPERS
+    /** Compute the point indices for open spline : Return: [ aIdx, bIdx, cIdx, dIdx, t ] */
+    _computeCurveIdx( t: number ) : [number,number,number,number,number]{
+        let i, tt;
+
+        if( t != 1 ){
+            tt  = t * this._curveCnt;   // Using Curve count as a way to get the Index and the remainder is the T of the curve
+            i   = tt | 0;	            // BitwiseOR 0 same op as Floor
+            tt -= i;		            // Strip out the whole number to get the decimal to be used for the T of curve ( FRACT )
+        }else{
+            i	= ( this._curveCnt - 1 );
+            tt	= 1;                        // The end of the final curve.
+        }
+
+        return [ i, i+1, i+2, i+3, tt ];
+    }
+
+    /** Compute the point indices for closed spline : Return: [ aIdx, bIdx, cIdx, dIdx, t ] */
+    _computeLoopIdx( t: number ) : [number,number,number,number,number]{
+        let i, tt;
+
+        if( t != 1 ){
+            tt  = t * this._pointCnt;  
+            i   = tt | 0;	            // BitwiseOR 0 same op as Floor
+            tt -= i;		            // Strip out the whole number to get the decimal to be used for the T of curve ( FRACT )
+        }else{
+            i	= this._pointCnt - 1;
+            tt	= 1;                    // The end of the final curve.
+        }
+
+        return [ 
+            i, 
+            Maths.mod( i+1, this._pointCnt ), 
+            Maths.mod( i+2, this._pointCnt ), 
+            Maths.mod( i+3, this._pointCnt ), 
+            tt
+        ];
+    }
+    // #endregion
 }
-
-export default HermiteSpline;
