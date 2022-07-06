@@ -1,1 +1,5 @@
 https://github.com/Zolniu/DigitalRune/tree/master/Source/DigitalRune.Mathematics/Interpolation
+
+// https://github.com/thibauts/b-spline
+// https://github.com/Tagussan/BSpline/
+// https://www.codeproject.com/Articles/16689/Bspline-in-C
