@@ -3,3 +3,21 @@ https://github.com/Zolniu/DigitalRune/tree/master/Source/DigitalRune.Mathematics
 // https://github.com/thibauts/b-spline
 // https://github.com/Tagussan/BSpline/
 // https://www.codeproject.com/Articles/16689/Bspline-in-C
+
+Hoppy Curve
+https://twitter.com/bendotk/status/1545366411056484352?s=20&t=nmGUbMJ-e0bUZd8rllNUgQ
+https://github.com/tgfrerer/island
+http://weitz.de/hobby/
+https://github.com/openrndr/orx/tree/master/orx-shapes
+
+
+NURBS
+https://threejs.org/examples/?q=Nurb#webgl_geometry_nurbs
+https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_nurbs.html
+
+https://www.ibiblio.org/e-notes/webxr/garden/nurbs3xr.htm
+
+https://www.codeproject.com/Articles/5295155/CurSur-3D-Curves-and-Surfaces-in-Geometric-Design
+https://amarnaths0005.github.io/3DCurvesSurfaces/#two
+https://github.com/amarnaths0005/3DCurvesSurfaces
+
