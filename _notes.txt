@@ -1,3 +1,8 @@
+AMAZING, TONS OF LIVE EXAMPLES PLUS HOW TO SUB-DIV, MAKE SUrfACES
+EVEN HOW TO ROUND OUT THE CURVES edges
+https://ciechanow.ski/curves-and-surfaces/
+
+
 https://github.com/Zolniu/DigitalRune/tree/master/Source/DigitalRune.Mathematics/Interpolation
 
 // https://github.com/thibauts/b-spline
